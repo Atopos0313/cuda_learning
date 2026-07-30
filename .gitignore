@@ -1,0 +1,28 @@
+# CMake and compiler outputs
+/build/
+/out/
+/.vs/
+CMakeUserPresets.json
+
+# Visual Studio / MSVC artifacts
+*.user
+*.suo
+*.obj
+*.pdb
+*.ilk
+*.exe
+*.dll
+*.lib
+*.exp
+
+# CUDA / profiler generated reports
+*.ncu-rep
+*.nsys-rep
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Operating-system files
+.DS_Store
+Thumbs.db

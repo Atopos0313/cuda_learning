@@ -1,0 +1,22 @@
+{
+  "configurations": [
+    {
+      "name": "Windows MSVC + CUDA",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.3/include",
+        "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.3/include/cccl"
+      ],
+      "defines": [
+        "__CUDACC__"
+      ],
+      "compilerPath": "D:/software/VS2022/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+      "cStandard": "c17",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "windows-msvc-x64",
+      "configurationProvider": "ms-vscode.cmake-tools",
+      "mergeConfigurations": true
+    }
+  ],
+  "version": 4
+}

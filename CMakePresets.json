@@ -1,0 +1,76 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 28,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "windows-msvc",
+      "displayName": "Windows MSVC + Ninja + CUDA (RTX 2080 Ti, sm_75)",
+      "description": "Visual Studio 2022 toolchain with Ninja Multi-Config and CUDA 13.3",
+      "generator": "Ninja Multi-Config",
+      "binaryDir": "${sourceDir}/build/windows-ninja",
+      "cacheVariables": {
+        "CMAKE_MAKE_PROGRAM": "D:/software/VS2022/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe",
+        "CMAKE_CXX_COMPILER": "D:/software/VS2022/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+        "CMAKE_CUDA_HOST_COMPILER": "D:/software/VS2022/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+        "CMAKE_CUDA_ARCHITECTURES": "75",
+        "BUILD_TESTING": "ON"
+      },
+      "environment": {
+        "VCToolsInstallDir": "D:/software/VS2022/VC/Tools/MSVC/14.44.35207/",
+        "WindowsSdkDir": "D:/Windows Kits/10/",
+        "WindowsSDKVersion": "10.0.26100.0/",
+        "UCRTVersion": "10.0.26100.0",
+        "CUDA_PATH": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.3",
+        "PATH": "D:/software/VS2022/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64;D:/Windows Kits/10/bin/10.0.26100.0/x64;C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.3/bin;$penv{PATH}",
+        "INCLUDE": "D:/software/VS2022/VC/Tools/MSVC/14.44.35207/include;D:/Windows Kits/10/Include/10.0.26100.0/ucrt;D:/Windows Kits/10/Include/10.0.26100.0/shared;D:/Windows Kits/10/Include/10.0.26100.0/um;D:/Windows Kits/10/Include/10.0.26100.0/winrt;D:/Windows Kits/10/Include/10.0.26100.0/cppwinrt;$penv{INCLUDE}",
+        "LIB": "D:/software/VS2022/VC/Tools/MSVC/14.44.35207/lib/x64;D:/Windows Kits/10/Lib/10.0.26100.0/ucrt/x64;D:/Windows Kits/10/Lib/10.0.26100.0/um/x64;$penv{LIB}",
+        "LIBPATH": "D:/software/VS2022/VC/Tools/MSVC/14.44.35207/lib/x64;$penv{LIBPATH}"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "configurePreset": "windows-msvc",
+      "configuration": "Debug",
+      "jobs": 8
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "configurePreset": "windows-msvc",
+      "configuration": "Release",
+      "jobs": 8
+    },
+    {
+      "name": "profile",
+      "displayName": "RelWithDebInfo for Nsight",
+      "configurePreset": "windows-msvc",
+      "configuration": "RelWithDebInfo",
+      "jobs": 8
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "windows-msvc",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "release",
+      "configurePreset": "windows-msvc",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}
