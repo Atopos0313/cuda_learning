@@ -64,6 +64,7 @@ add_library(cuda_ops STATIC
     kernels/matrix_add.cu
     kernels/memory_access.cu
     kernels/transpose.cu
+    kernels/reduction.cu
 )
 
 target_include_directories(cuda_ops
@@ -164,6 +165,20 @@ set_target_properties(bench_transpose PROPERTIES
     FOLDER "Benchmarks"
 )
 
+add_executable(bench_reduction
+    benchmarks/bench_reduction.cu
+)
+
+target_link_libraries(bench_reduction
+    PRIVATE
+        cuda_ops
+        cuda_engineering_options
+)
+
+set_target_properties(bench_reduction PROPERTIES
+    FOLDER "Benchmarks"
+)
+
 # ------------------------------------------------------------
 # Test executables
 # ------------------------------------------------------------
@@ -173,6 +188,16 @@ add_executable(test_memory_access
 )
 
 target_link_libraries(test_memory_access
+    PRIVATE
+        cuda_ops
+        cuda_engineering_options
+)
+
+add_executable(test_reduction
+    tests/test_reduction.cu
+)
+
+target_link_libraries(test_reduction
     PRIVATE
         cuda_ops
         cuda_engineering_options
@@ -210,6 +235,7 @@ target_link_libraries(test_error_cases
 
 set_target_properties(
     test_memory_access
+    test_reduction
     test_common
     test_api_error
     test_error_cases
