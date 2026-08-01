@@ -179,6 +179,30 @@ set_target_properties(bench_reduction PROPERTIES
     FOLDER "Benchmarks"
 )
 
+add_executable(profile_copy
+    kernels/profile_copy.cu
+)
+
+target_link_libraries(profile_copy
+    PRIVATE
+        cuda_ops
+        cuda_engineering_options
+)
+
+set_target_properties(profile_copy PROPERTIES
+    FOLDER "Benchmarks"
+)
+
+add_executable(stream_pipeline
+    apps/stream_pipeline.cu
+)
+
+target_link_libraries(stream_pipeline
+    PRIVATE
+        cuda_ops
+        cuda_engineering_options
+)
+
 # ------------------------------------------------------------
 # Test executables
 # ------------------------------------------------------------

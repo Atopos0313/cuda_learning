@@ -11,6 +11,7 @@ template <typename T>
 class DeviceBuffer
 {
 public:
+// explicit 禁止编译器把整数自动转换成 DeviceBuffer,: size_(count)相当于构造的时候直接把size_初始化为count
     explicit DeviceBuffer(std::size_t count)
         : size_(count)
     {

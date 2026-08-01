@@ -41,7 +41,7 @@ __global__ void transpose_tiled_kernel(
     const int input_col =
         static_cast<int>(blockIdx.x) * kTileDimension
         + static_cast<int>(threadIdx.x);
-
+    // 虽然block(32,8) 但是(blockIdx.y) * kTileDimension，不是乘8，因为要处理的是32x32数据
     const int input_row =
         static_cast<int>(blockIdx.y) * kTileDimension
         + static_cast<int>(threadIdx.y);
@@ -212,6 +212,9 @@ void transpose_tiled_device(
     CUDA_CHECK(cudaGetLastError());
 }
 
+// bank conflict 解决，共享内存默认就是32个bank，并且是按照列来划分的，同一列就是一个bank
+// 如果一个warp操作的数据都在同一个bank上,就会造成冲突,需要等待,所以将共享内存大小设置为
+// 32 * 33 这样每个线程就不会操作同一列上的数据,解决冲突
 void transpose_padded_device(
     const float* d_input,
     float* d_output,
