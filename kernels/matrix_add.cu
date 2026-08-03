@@ -1,120 +1,57 @@
-/*
-记住:
-threadIdx.x / threadIdx.y
-线程在当前 block 内的位置
-
-blockIdx.x / blockIdx.y
-当前 block 在 grid 中的位置
-
-col / row
-当前线程负责的全局矩阵坐标
-
-idx
-该矩阵坐标对应的一维内存下标
-
-*/
-
 #include "matrix_add.h"
+
 #include "common/cuda_check.h"
 #include "common/device_buffer.h"
+#include "common/launch_config.h"
 
 #include <cuda_runtime.h>
 
+#include <cstddef>
 
-__global__ void matrix_add_kernel(
-    const float* A,
-    const float* B,
-    float* C,
-    int height,
-    int width)
+namespace
 {
-    // 当前线程负责的全局矩阵位置
-    // threadIdx.x 管列
-    // threadIdx.y 管行
-    // matrix[row][col]
-    /*
-    x 横向 → 列 col是全局位置的列号 → width是矩阵的列数
-    y 纵向 → 行 row → height
-    */
-    int col = blockIdx.x * blockDim.x + threadIdx.x;
-    int row = blockIdx.y * blockDim.y + threadIdx.y;
-    // 这个矩阵位置对应的一维内存下标
-    if(col < width && row < height){
-        int idx = row * width + col;
-        C[idx] = A[idx] + B[idx];
+__global__ void
+matrix_add_kernel(const float* a, const float* b, float* c, int height, int width)
+{
+    // x identifies a column and y identifies a row in this project.
+    const int col = static_cast<int>(blockIdx.x * blockDim.x + threadIdx.x);
+    const int row = static_cast<int>(blockIdx.y * blockDim.y + threadIdx.y);
+
+    if (row < height && col < width)
+    {
+        // Row-major storage: skip row complete rows, then move col elements.
+        const int index = row * width + col;
+        c[index] = a[index] + b[index];
     }
-
 }
-void matrix_add(
-    const float* h_A,
-    const float* h_B,
-    float* h_C,
-    int height,
-    int width)
+} // namespace
+
+void matrix_add(const float* h_a, const float* h_b, float* h_c, int height, int width)
 {
-    if (height <= 0 || width <= 0) {
+    if (height <= 0 || width <= 0)
+    {
         return;
     }
 
     const std::size_t element_count =
-        static_cast<std::size_t>(height) *
-        static_cast<std::size_t>(width);
+        static_cast<std::size_t>(height) * static_cast<std::size_t>(width);
+    const std::size_t bytes = element_count * sizeof(float);
 
-    const std::size_t bytes =
-        element_count * sizeof(float);
+    DeviceBuffer<float> d_a(element_count);
+    DeviceBuffer<float> d_b(element_count);
+    DeviceBuffer<float> d_c(element_count);
 
-    // float* d_A = nullptr;
-    // float* d_B = nullptr;
-    // float* d_C = nullptr;
-    DeviceBuffer<float> d_A(element_count);
-    DeviceBuffer<float> d_B(element_count);
-    DeviceBuffer<float> d_C(element_count);
+    CUDA_CHECK(cudaMemcpy(d_a.data(), h_a, bytes, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_b.data(), h_b, bytes, cudaMemcpyHostToDevice));
 
-
-    // CUDA_CHECK(cudaMalloc(&d_A, bytes));
-    // CUDA_CHECK(cudaMalloc(&d_B, bytes));
-    // CUDA_CHECK(cudaMalloc(&d_C, bytes));
-
-    CUDA_CHECK(cudaMemcpy(
-        d_A.data(),
-        h_A,
-        bytes,
-        cudaMemcpyHostToDevice
-    ));
-
-    CUDA_CHECK(cudaMemcpy(
-        d_B.data(),
-        h_B,
-        bytes,
-        cudaMemcpyHostToDevice
-    ));
-    const int block_x = 16;
-    const int block_y = 16;
-    const dim3 block(block_x, block_y);
-
-    const dim3 grid(
-        (width + block.x - 1) / block.x,
-        (height + block.y - 1) / block.y
-    );
+    constexpr int kBlockWidth = 16;
+    constexpr int kBlockHeight = 16;
+    const dim3 block(kBlockWidth, kBlockHeight);
+    const dim3 grid(ceil_div(width, kBlockWidth), ceil_div(height, kBlockHeight));
 
     matrix_add_kernel<<<grid, block>>>(
-        d_A.data(),
-        d_B.data(),
-        d_C.data(),
-        height,
-        width
-    );
-
+        d_a.data(), d_b.data(), d_c.data(), height, width);
     CUDA_KERNEL_CHECK();
 
-    CUDA_CHECK(cudaMemcpy(
-        h_C,
-        d_C.data(),
-        bytes,
-        cudaMemcpyDeviceToHost
-    ));
-
-    // CUDA_CHECK(cudaFree(d_A));
-    // CUDA_CHECK(cudaFree(d_B));
-    // CUDA_CHECK(cudaFree(d_C));
+    CUDA_CHECK(cudaMemcpy(h_c, d_c.data(), bytes, cudaMemcpyDeviceToHost));
 }

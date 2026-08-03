@@ -8,25 +8,19 @@
 
 int main()
 {
-    try {
+    try
+    {
         DeviceBuffer<float> buffer(1);
 
-        // 故意提供空的目标地址，制造普通 API 参数错误。
-        CUDA_CHECK(cudaMemcpy(
-            nullptr,
-            buffer.data(),
-            sizeof(float),
-            cudaMemcpyDeviceToHost
-        ));
+        // Deliberately pass a null destination to trigger an API error.
+        CUDA_CHECK(
+            cudaMemcpy(nullptr, buffer.data(), sizeof(float), cudaMemcpyDeviceToHost));
 
         return 0;
     }
-    catch (const std::exception& error) {
-        std::fprintf(
-            stderr,
-            "Caught exception: %s\n",
-            error.what()
-        );
+    catch (const std::exception& error)
+    {
+        std::fprintf(stderr, "Caught exception: %s\n", error.what());
 
         return 1;
     }

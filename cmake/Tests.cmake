@@ -18,6 +18,11 @@ add_test(
 )
 
 add_test(
+    NAME reduction_correctness
+    COMMAND test_reduction
+)
+
+add_test(
     NAME common_components
     COMMAND test_common
 )
@@ -31,6 +36,7 @@ set_tests_properties(
     vector_add_correctness
     matrix_add_correctness
     memory_access_correctness
+    reduction_correctness
     common_components
     PROPERTIES
         LABELS "correctness"

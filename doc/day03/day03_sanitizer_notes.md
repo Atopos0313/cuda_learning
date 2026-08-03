@@ -1,73 +1,76 @@
-# Day 3 专题｜CUDA API 错误与 Compute Sanitizer 诊断
+# Day 3 补充：Compute Sanitizer 与错误注入记录
 
-> 本文记录 2026-08-01 对当前 Day 3 错误样例的补采验证。它证明现有两类故障可以被定位，不代表原计划中所有错误类型都已保存。
+## 1. 记录目的
 
-## 1. 普通 CUDA API 参数错误
+本记录保存 2026-08-01 的实际错误证据，并说明怎样阅读诊断信息。错误样例是故意编写的，不应复制到正常业务 kernel 中。
 
-`tests/test_api_error.cu` 将 `cudaMemcpy` 的目标指针故意设为 `nullptr`。实际输出的核心部分：
+## 2. 同步 API 错误
+
+样例：`tests/test_api_error.cu`。
+
+程序把空目标地址传给 `cudaMemcpy`，`CUDA_CHECK` 捕获到：
 
 ```text
-CUDA Error
-API: cudaMemcpy(nullptr, buffer.data(), sizeof(float), cudaMemcpyDeviceToHost)
-File: ...\tests\test_api_error.cu
+API: cudaMemcpy(...)
+File: tests/test_api_error.cu
 Line: 20
 Error: invalid argument
-Caught exception: invalid argument
 ```
 
-这证明错误宏能保留调用表达式和源码位置，而不是只输出“程序失败”。
+这说明错误在 CUDA API 返回时已经可见，不需要等待 kernel。
 
-## 2. Kernel 越界写
+## 3. 故意越界的 kernel
 
-测试分配 1 个 float，却让线程写入：
+样例：`tests/test_error_cases.cu`。
 
-```cpp
-data[index + 1024] = 1.0F;
+程序只申请一个 `float`，kernel 却写入分配范围之外。普通 Runtime 执行并不保证可靠报告如此小的越界，所以 CTest 只在找到 `compute-sanitizer` 时添加该测试。
+
+实测 `memcheck` 报告的关键信息：
+
+```text
+Invalid __global__ write
+tests/test_error_cases.cu:14
+thread (0,0,0), block (0,0,0)
+Address is 4093 bytes after a 4-byte allocation
 ```
 
-普通 CUDA Runtime 不保证仅凭分配边界立即发现这种访问，因为底层分配粒度可能大于请求大小。因此 CTest 在检测到 Compute Sanitizer 时使用：
+## 4. 每一项信息怎样理解
+
+| 报告字段 | 含义 | 排查动作 |
+|---|---|---|
+| Invalid global write | kernel 向不属于该分配的全局内存写入 | 检查目标指针、索引和边界条件 |
+| 文件与行号 | 触发非法访问的源码位置 | 回到 kernel 对应行，不要只看后面的同步 API |
+| thread / block | 哪个逻辑线程执行了错误访问 | 代入索引公式手算该线程地址 |
+| allocation relation | 地址位于合法分配之前或之后多远 | 检查申请字节数和索引单位 |
+
+异步错误有时会在 `cudaDeviceSynchronize` 或 D2H 拷贝处被 Runtime 报出，但真正错误往往发生在更早的 kernel 指令。Sanitizer 的源码位置比“最后看到错误的同步调用”更接近根因。
+
+## 5. 推荐排查顺序
+
+1. 确认分配的元素数和字节数；
+2. 手算报告中 thread/block 的全局索引；
+3. 检查所有维度的边界判断；
+4. 检查指针是否已经释放或指向错误缓冲区；
+5. 检查 H2D/D2H 方向和拷贝大小；
+6. 修复后重新运行正常测试与 sanitizer。
+
+## 6. 运行方式
+
+单独运行：
 
 ```powershell
-compute-sanitizer --tool memcheck --error-exitcode 1 test_error_cases.exe
+compute-sanitizer --tool memcheck --error-exitcode 1 `
+    .\build\windows-ninja\Release\test_error_cases.exe
 ```
 
-补采报告的关键证据：
+通过 CTest 运行全部错误处理测试：
 
-```text
-Invalid __global__ write of size 4 bytes
-at out_of_bounds_kernel(float *) ... test_error_cases.cu:14
-by thread (0,0,0) in block (0,0,0)
-Access ... is 4,093 bytes after the nearest allocation ... of size 4 bytes
-Program hit cudaErrorLaunchFailure ... on cudaDeviceSynchronize
+```powershell
+ctest --preset release -L error-handling --output-on-failure
 ```
 
-## 3. 为什么错误在同步点出现
+## 7. 不能从本次记录推出什么
 
-Kernel launch 对 Host 通常是异步的：
-
-```text
-CPU 提交 kernel
-→ launch API 返回
-→ GPU 稍后执行并发生越界
-→ cudaDeviceSynchronize 等待
-→ 执行错误在同步点返回
-```
-
-所以 `cudaGetLastError()` 与同步检查解决的是不同阶段的问题。
-
-## 4. CTest 为什么显示 Passed
-
-两个错误样例都应该返回非零，`cmake/Tests.cmake` 对它们设置了 `WILL_FAIL TRUE`。因此：
-
-```text
-错误成功暴露 → 程序非零退出 → CTest 判定 Passed
-错误没有暴露 → 程序零退出 → CTest 反而判定 Failed
-```
-
-## 5. 尚未补齐的故障实验
-
-- 错误 memcpy 字节数；
-- use-after-free；
-- 独立 leak-check 报告。
-
-这些内容只有在新增可复现代码和实际诊断输出后，才能标记为已验证。
+- 没有报告不等于所有路径都无越界；测试覆盖范围仍由输入决定；
+- `memcheck` 主要检查内存问题，不替代竞争检查、结果比较或性能分析；
+- 当前仓库只保留 API 参数错误和越界写两类故障注入，不能声称已覆盖所有 CUDA 错误类型。

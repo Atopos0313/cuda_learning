@@ -1,6 +1,7 @@
 #include "transpose.h"
 
 #include "common/cuda_check.h"
+#include "common/launch_config.h"
 
 #include <cuda_runtime.h>
 
@@ -8,50 +9,35 @@ namespace
 {
 constexpr int kTileDimension = 32;
 constexpr int kBlockRows = 8;
-}
+} // namespace
 
-__global__ void transpose_naive_kernel(
-    const float* input,
-    float* output,
-    int height,
-    int width
-)
+__global__ void
+transpose_naive_kernel(const float* input, float* output, int height, int width)
 {
-    const int row =
-        static_cast<int>(blockIdx.y * blockDim.y + threadIdx.y);
+    const int row = static_cast<int>(blockIdx.y * blockDim.y + threadIdx.y);
 
-    const int col =
-        static_cast<int>(blockIdx.x * blockDim.x + threadIdx.x);
+    const int col = static_cast<int>(blockIdx.x * blockDim.x + threadIdx.x);
 
-    if (row < height && col < width) {
-        output[col * height + row] =
-            input[row * width + col];
+    if (row < height && col < width)
+    {
+        output[col * height + row] = input[row * width + col];
     }
 }
 
-__global__ void transpose_tiled_kernel(
-    const float* input,
-    float* output,
-    int height,
-    int width
-)
+__global__ void
+transpose_tiled_kernel(const float* input, float* output, int height, int width)
 {
     __shared__ float tile[kTileDimension][kTileDimension];
 
     const int input_col =
-        static_cast<int>(blockIdx.x) * kTileDimension
-        + static_cast<int>(threadIdx.x);
-    // 虽然block(32,8) 但是(blockIdx.y) * kTileDimension，不是乘8，因为要处理的是32x32数据
+        static_cast<int>(blockIdx.x) * kTileDimension + static_cast<int>(threadIdx.x);
+    // A 32x8 block cooperatively covers a 32x32 tile. Each thread therefore
+    // processes four rows, separated by kBlockRows.
     const int input_row =
-        static_cast<int>(blockIdx.y) * kTileDimension
-        + static_cast<int>(threadIdx.y);
-    // 考虑到tile是32x32=1024个元素，一个block为32x8=256线程，所以一个线程要处理4个元素
-    for (int offset = 0;
-         offset < kTileDimension;
-         offset += kBlockRows)
+        static_cast<int>(blockIdx.y) * kTileDimension + static_cast<int>(threadIdx.y);
+    for (int offset = 0; offset < kTileDimension; offset += kBlockRows)
     {
-        if (input_col < width &&
-            input_row + offset < height)
+        if (input_col < width && input_row + offset < height)
         {
             tile[threadIdx.y + offset][threadIdx.x] =
                 input[(input_row + offset) * width + input_col];
@@ -61,19 +47,14 @@ __global__ void transpose_tiled_kernel(
     __syncthreads();
 
     const int output_col =
-        static_cast<int>(blockIdx.y) * kTileDimension
-        + static_cast<int>(threadIdx.x);
+        static_cast<int>(blockIdx.y) * kTileDimension + static_cast<int>(threadIdx.x);
 
     const int output_row =
-        static_cast<int>(blockIdx.x) * kTileDimension
-        + static_cast<int>(threadIdx.y);
+        static_cast<int>(blockIdx.x) * kTileDimension + static_cast<int>(threadIdx.y);
 
-    for (int offset = 0;
-         offset < kTileDimension;
-         offset += kBlockRows)
+    for (int offset = 0; offset < kTileDimension; offset += kBlockRows)
     {
-        if (output_col < height &&
-            output_row + offset < width)
+        if (output_col < height && output_row + offset < width)
         {
             output[(output_row + offset) * height + output_col] =
                 tile[threadIdx.x][threadIdx.y + offset];
@@ -81,176 +62,100 @@ __global__ void transpose_tiled_kernel(
     }
 }
 
-__global__ void transpose_padded_kernel(
-    const float* input,
-    float* output,
-    int height,
-    int width
-)
+__global__ void
+transpose_padded_kernel(const float* input, float* output, int height, int width)
 {
-    __shared__ float tile
-        [kTileDimension][kTileDimension + 1];
+    __shared__ float tile[kTileDimension][kTileDimension + 1];
 
     const int input_col =
-        static_cast<int>(blockIdx.x) * kTileDimension
-        + static_cast<int>(threadIdx.x);
+        static_cast<int>(blockIdx.x) * kTileDimension + static_cast<int>(threadIdx.x);
 
     const int input_row =
-        static_cast<int>(blockIdx.y) * kTileDimension
-        + static_cast<int>(threadIdx.y);
+        static_cast<int>(blockIdx.y) * kTileDimension + static_cast<int>(threadIdx.y);
 
-    for (int offset = 0;
-         offset < kTileDimension;
-         offset += kBlockRows)
+    for (int offset = 0; offset < kTileDimension; offset += kBlockRows)
     {
-        if (input_col < width &&
-            input_row + offset < height)
+        if (input_col < width && input_row + offset < height)
         {
             tile[threadIdx.y + offset][threadIdx.x] =
-                input[
-                    (input_row + offset) * width
-                    + input_col
-                ];
+                input[(input_row + offset) * width + input_col];
         }
     }
 
     __syncthreads();
 
     const int output_col =
-        static_cast<int>(blockIdx.y) * kTileDimension
-        + static_cast<int>(threadIdx.x);
+        static_cast<int>(blockIdx.y) * kTileDimension + static_cast<int>(threadIdx.x);
 
     const int output_row =
-        static_cast<int>(blockIdx.x) * kTileDimension
-        + static_cast<int>(threadIdx.y);
+        static_cast<int>(blockIdx.x) * kTileDimension + static_cast<int>(threadIdx.y);
 
-    for (int offset = 0;
-         offset < kTileDimension;
-         offset += kBlockRows)
+    for (int offset = 0; offset < kTileDimension; offset += kBlockRows)
     {
-        if (output_col < height &&
-            output_row + offset < width)
+        if (output_col < height && output_row + offset < width)
         {
-            output[
-                (output_row + offset) * height
-                + output_col
-            ] =
-                tile[
-                    threadIdx.x
-                ][
-                    threadIdx.y + offset
-                ];
+            output[(output_row + offset) * height + output_col] =
+                tile[threadIdx.x][threadIdx.y + offset];
         }
     }
 }
 
 void transpose_naive_device(
-    const float* d_input,
-    float* d_output,
-    int height,
-    int width,
-    cudaStream_t stream
-)
+    const float* d_input, float* d_output, int height, int width, cudaStream_t stream)
 {
-    if (height <= 0 || width <= 0) {
+    if (height <= 0 || width <= 0)
+    {
         return;
     }
 
     const dim3 block(kTileDimension, kBlockRows);
 
-    const dim3 grid(
-        (width + block.x - 1) / block.x,
-        (height + block.y - 1) / block.y
-    );
+    const dim3 grid(ceil_div(width, static_cast<int>(block.x)),
+                    ceil_div(height, static_cast<int>(block.y)));
 
-    transpose_naive_kernel<<<
-        grid,
-        block,
-        0,
-        stream
-    >>>(
-        d_input,
-        d_output,
-        height,
-        width
-    );
+    transpose_naive_kernel<<<grid, block, 0, stream>>>(
+        d_input, d_output, height, width);
 
     CUDA_CHECK(cudaGetLastError());
 }
 
 void transpose_tiled_device(
-    const float* d_input,
-    float* d_output,
-    int height,
-    int width,
-    cudaStream_t stream
-)
+    const float* d_input, float* d_output, int height, int width, cudaStream_t stream)
 {
-    if (height <= 0 || width <= 0) {
+    if (height <= 0 || width <= 0)
+    {
         return;
     }
 
     const dim3 block(kTileDimension, kBlockRows);
 
-    const dim3 grid(
-        (width + kTileDimension - 1) / kTileDimension,
-        (height + kTileDimension - 1) / kTileDimension
-    );
+    const dim3 grid(ceil_div(width, kTileDimension), ceil_div(height, kTileDimension));
 
-    transpose_tiled_kernel<<<
-        grid,
-        block,
-        0,
-        stream
-    >>>(
-        d_input,
-        d_output,
-        height,
-        width
-    );
+    transpose_tiled_kernel<<<grid, block, 0, stream>>>(
+        d_input, d_output, height, width);
 
     CUDA_CHECK(cudaGetLastError());
 }
 
-// bank conflict 解决，共享内存默认就是32个bank，并且是按照列来划分的，同一列就是一个bank
-// 如果一个warp操作的数据都在同一个bank上,就会造成冲突,需要等待,所以将共享内存大小设置为
-// 32 * 33 这样每个线程就不会操作同一列上的数据,解决冲突
+// On this architecture, successive 32-bit shared-memory words map across 32
+// banks by address. Reading a column from a 32x32 tile gives all lanes the
+// same address modulo 32, causing a bank conflict. The extra padding column
+// changes that address stride from 32 to 33 words and distributes lanes over
+// different banks.
 void transpose_padded_device(
-    const float* d_input,
-    float* d_output,
-    int height,
-    int width,
-    cudaStream_t stream
-)
+    const float* d_input, float* d_output, int height, int width, cudaStream_t stream)
 {
-    if (height <= 0 || width <= 0) {
+    if (height <= 0 || width <= 0)
+    {
         return;
     }
 
-    const dim3 block(
-        kTileDimension,
-        kBlockRows
-    );
+    const dim3 block(kTileDimension, kBlockRows);
 
-    const dim3 grid(
-        (width + kTileDimension - 1)
-            / kTileDimension,
+    const dim3 grid(ceil_div(width, kTileDimension), ceil_div(height, kTileDimension));
 
-        (height + kTileDimension - 1)
-            / kTileDimension
-    );
-
-    transpose_padded_kernel<<<
-        grid,
-        block,
-        0,
-        stream
-    >>>(
-        d_input,
-        d_output,
-        height,
-        width
-    );
+    transpose_padded_kernel<<<grid, block, 0, stream>>>(
+        d_input, d_output, height, width);
 
     CUDA_CHECK(cudaGetLastError());
 }

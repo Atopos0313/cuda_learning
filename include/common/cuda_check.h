@@ -1,46 +1,35 @@
-/*
-异常的执行流程
-CUDA API 返回错误
-→ CUDA_CHECK 执行 throw
-→ 当前代码立即停止
-→ 沿调用链向外寻找 catch
-→ 途中销毁已经构造的局部对象
-→ DeviceBuffer 析构并执行 cudaFree
-→ catch 统一处理错误
-*/
-
 #pragma once
 
 #include <cuda_runtime.h>
+
 #include <cstdio>
 #include <stdexcept>
 
-#define CUDA_CHECK(call)                                      \
-do                                                            \
-{                                                             \
-    cudaError_t err = (call);                                   \
-                                                              \
-    if(err != cudaSuccess)                                    \
-    {                                                         \
-        fprintf(stderr,                                      \
-            "CUDA Error\n"                                   \
-            "API: %s\n"                                     \
-            "File: %s\n"                                     \
-            "Line: %d\n"                                     \
-            "Error: %s\n",                                   \
-            #call,                                            \
-            __FILE__,                                        \
-            __LINE__,                                        \
-            cudaGetErrorString(err));                        \
-                                                              \
-        throw std::runtime_error(cudaGetErrorString(err));                                  \
-    }                                                         \
-} while(0)
+// CUDA Runtime functions return an error code instead of throwing an
+// exception. This macro turns a failed call into a readable diagnostic and a
+// C++ exception, so already-constructed RAII objects can still clean up.
+#define CUDA_CHECK(call)                                                               \
+    do                                                                                 \
+    {                                                                                  \
+        const cudaError_t cuda_check_error = (call);                                   \
+        if (cuda_check_error != cudaSuccess)                                           \
+        {                                                                              \
+            std::fprintf(stderr,                                                       \
+                         "CUDA error\nAPI: %s\nFile: %s\nLine: %d\nError: %s\n",       \
+                         #call,                                                        \
+                         __FILE__,                                                     \
+                         __LINE__,                                                     \
+                         cudaGetErrorString(cuda_check_error));                        \
+            throw std::runtime_error(cudaGetErrorString(cuda_check_error));            \
+        }                                                                              \
+    } while (false)
 
-
-#define CUDA_KERNEL_CHECK()                                  \
-do                                                            \
-{                                                             \
-    CUDA_CHECK(cudaGetLastError());                           \
-    CUDA_CHECK(cudaDeviceSynchronize());                      \
-} while(0)
+// Use this strong check at correctness/debug boundaries. The synchronization
+// deliberately waits for execution-time failures and is not suitable inside
+// a performance timing loop.
+#define CUDA_KERNEL_CHECK()                                                            \
+    do                                                                                 \
+    {                                                                                  \
+        CUDA_CHECK(cudaGetLastError());                                                \
+        CUDA_CHECK(cudaDeviceSynchronize());                                           \
+    } while (false)

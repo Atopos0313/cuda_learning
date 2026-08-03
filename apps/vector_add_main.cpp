@@ -1,59 +1,53 @@
-#include <vector>
-#include <iostream>
+#include "common/compare.h"
 #include "common/init_data.h"
 #include "vector_add.h"
-#include "common/compare.h"
 
-bool run_test(int N, int thread_per_block){
-    std::vector<float> h_A(N);
-        std::vector<float> h_B(N);
-        std::vector<float> h_C(N);
-        std::vector<float> cpu_C(N);
-        init_random(h_A, 1);
-        init_random(h_B, 2);
+#include <cstddef>
+#include <iostream>
+#include <vector>
 
-        vector_add(h_A.data(), h_B.data(), h_C.data(), N, thread_per_block);
+namespace
+{
+bool run_test(int n, int threads_per_block)
+{
+    std::vector<float> h_a(static_cast<std::size_t>(n));
+    std::vector<float> h_b(static_cast<std::size_t>(n));
+    std::vector<float> h_c(static_cast<std::size_t>(n));
+    std::vector<float> expected(static_cast<std::size_t>(n));
 
-        for(size_t i = 0; i < N; i++){
-            cpu_C[i] = h_A[i] + h_B[i];
-        }
-        float eps = 1e-6f;
-        return check_result(h_C, cpu_C, eps);
+    init_random(h_a, 1);
+    init_random(h_b, 2);
+
+    vector_add(h_a.data(), h_b.data(), h_c.data(), n, threads_per_block);
+
+    for (std::size_t index = 0; index < expected.size(); ++index)
+    {
+        expected[index] = h_a[index] + h_b[index];
+    }
+
+    return check_result(h_c, expected, 1.0e-6F);
 }
+} // namespace
 
 int main()
 {
-    std::vector<int> test_sizes = {
-        0,
-        1,
-        1000,
-        100003
-    };
+    const std::vector<int> test_sizes = {0, 1, 1000, 100003};
+    const std::vector<int> block_sizes = {64, 128, 256};
 
-    std::vector<int> block_sizes = {
-        64,
-        128,
-        256
-    };
+    bool all_passed = true;
 
-    bool all_pass = true;
-    // 这个条件语句的意思是，依次取出容器中的每一个元素， 并把当前元素放进变量 block_size
-    for (int block_size : block_sizes) {
-        for (int N : test_sizes) {
-            std::cout
-                << "testing N = " << N
-                << ", block size = " << block_size
-                << std::endl;
+    for (const int block_size : block_sizes)
+    {
+        for (const int n : test_sizes)
+        {
+            const bool passed = run_test(n, block_size);
 
-            const bool ok = run_test(N, block_size);
+            std::cout << "N=" << n << ", block=" << block_size
+                      << ", correct=" << (passed ? "PASS" : "FAIL") << '\n';
 
-            std::cout << (ok ? "PASS" : "FAIL") << std::endl;
-
-            if (!ok) {
-                all_pass = false;
-            }
+            all_passed = passed && all_passed;
         }
     }
 
-    return all_pass ? 0 : 1;
+    return all_passed ? 0 : 1;
 }

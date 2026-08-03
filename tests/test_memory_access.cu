@@ -9,10 +9,7 @@
 #include <cstddef>
 #include <iostream>
 #include <vector>
-// 强枚举类型:使用的时候必须要带上作用域AxpyVariant::Contiguous
-// enum class 有两个主要优点：
-// 避免命名冲突：必须写成 AxpyVariant::Contiguous
-// 类型更安全：不会自动转换成整数
+// A scoped enum keeps the three teaching variants type-safe and explicit.
 enum class AxpyVariant
 {
     Contiguous,
@@ -21,22 +18,20 @@ enum class AxpyVariant
 };
 const char* variant_name(AxpyVariant variant)
 {
-    if (variant == AxpyVariant::Contiguous) {
+    if (variant == AxpyVariant::Contiguous)
+    {
         return "contiguous";
     }
 
-    if (variant == AxpyVariant::Strided) {
+    if (variant == AxpyVariant::Strided)
+    {
         return "strided";
     }
 
     return "float4";
 }
 
-bool run_test(
-    AxpyVariant variant,
-    int n,
-    int threads_per_block
-)
+bool run_test(AxpyVariant variant, int n, int threads_per_block)
 {
     constexpr float alpha = 1.1F;
 
@@ -48,87 +43,53 @@ bool run_test(
     init_random(h_y, 20260730);
 
     // Store the expected result of exactly one AXPY operation.
-    for (int index = 0; index < n; ++index) {
-        expected[index] =
-            alpha * h_x[index] + h_y[index];
+    for (int index = 0; index < n; ++index)
+    {
+        expected[index] = alpha * h_x[index] + h_y[index];
     }
 
     DeviceBuffer<float> d_x(n);
     DeviceBuffer<float> d_y(n);
 
-    const std::size_t bytes =
-        static_cast<std::size_t>(n) * sizeof(float);
+    const std::size_t bytes = static_cast<std::size_t>(n) * sizeof(float);
 
     // Empty buffers have no data to copy.
-    if (n > 0) {
-        CUDA_CHECK(cudaMemcpy(
-            d_x.data(),
-            h_x.data(),
-            bytes,
-            cudaMemcpyHostToDevice
-        ));
+    if (n > 0)
+    {
+        CUDA_CHECK(cudaMemcpy(d_x.data(), h_x.data(), bytes, cudaMemcpyHostToDevice));
 
-        CUDA_CHECK(cudaMemcpy(
-            d_y.data(),
-            h_y.data(),
-            bytes,
-            cudaMemcpyHostToDevice
-        ));
+        CUDA_CHECK(cudaMemcpy(d_y.data(), h_y.data(), bytes, cudaMemcpyHostToDevice));
     }
 
     // A correctness test executes AXPY exactly once.
     // Calling with n == 0 also verifies the early-return path.
-    if (variant == AxpyVariant::Contiguous) {
-        axpy_contiguous_device(
-            d_x.data(),
-            d_y.data(),
-            n,
-            alpha,
-            threads_per_block
-        );
+    if (variant == AxpyVariant::Contiguous)
+    {
+        axpy_contiguous_device(d_x.data(), d_y.data(), n, alpha, threads_per_block);
     }
-    else if (variant == AxpyVariant::Strided) {
-        axpy_strided_device(
-            d_x.data(),
-            d_y.data(),
-            n,
-            alpha,
-            threads_per_block
-        );
+    else if (variant == AxpyVariant::Strided)
+    {
+        axpy_strided_device(d_x.data(), d_y.data(), n, alpha, threads_per_block);
     }
-    else {
-        axpy_float4_device(
-            d_x.data(),
-            d_y.data(),
-            n,
-            alpha,
-            threads_per_block
-        );
+    else
+    {
+        axpy_float4_device(d_x.data(), d_y.data(), n, alpha, threads_per_block);
     }
 
     CUDA_CHECK(cudaDeviceSynchronize());
 
-    if (n > 0) {
-        CUDA_CHECK(cudaMemcpy(
-            h_y.data(),
-            d_y.data(),
-            bytes,
-            cudaMemcpyDeviceToHost
-        ));
+    if (n > 0)
+    {
+        CUDA_CHECK(cudaMemcpy(h_y.data(), d_y.data(), bytes, cudaMemcpyDeviceToHost));
     }
 
-    const CompareResult result = compare_results(
-        h_y,
-        expected,
-        1.0e-6F,
-        1.0e-5F
-    );
+    const CompareResult result = compare_results(h_y, expected, 1.0e-6F, 1.0e-5F);
 
-    if (!result.passed) {
-        std::cout
-            << " first_mismatch=" << result.first_mismatch
-            << " max_abs_error=" << result.max_abs_error
-            << " max_rel_error=" << result.max_rel_error;
+    if (!result.passed)
+    {
+        std::cout << " first_mismatch=" << result.first_mismatch
+                  << " max_abs_error=" << result.max_abs_error
+                  << " max_rel_error=" << result.max_rel_error;
     }
 
     return result.passed;
@@ -137,41 +98,27 @@ bool run_test(
 int main()
 {
     const std::vector<AxpyVariant> variants = {
-        AxpyVariant::Contiguous,
-        AxpyVariant::Strided,
-        AxpyVariant::Float4
-    };
-    const std::vector<int> sizes = {
-        0,
-        1,
-        3,
-        4,
-        5,
-        1000003
-    };
+        AxpyVariant::Contiguous, AxpyVariant::Strided, AxpyVariant::Float4};
+    const std::vector<int> sizes = {0, 1, 3, 4, 5, 1000003};
 
-    const std::vector<int> block_sizes = {
-        64,
-        128,
-        256
-    };
+    const std::vector<int> block_sizes = {64, 128, 256};
 
     bool all_passed = true;
 
-    for (const AxpyVariant variant : variants) {
-        for (const int n : sizes) {
-            for (const int block_size : block_sizes) {
-                const bool passed =
-                    run_test(variant, n, block_size);
+    for (const AxpyVariant variant : variants)
+    {
+        for (const int n : sizes)
+        {
+            for (const int block_size : block_sizes)
+            {
+                const bool passed = run_test(variant, n, block_size);
 
-                    std::cout
-                        << "variant=" << variant_name(variant)
-                        << ", N=" << n
-                        << ", block=" << block_size
-                        << ": " << (passed ? "PASS" : "FAIL")
-                        << '\n';
+                std::cout << "variant=" << variant_name(variant) << ", N=" << n
+                          << ", block=" << block_size << ": "
+                          << (passed ? "PASS" : "FAIL") << '\n';
 
-                if (!passed) {
+                if (!passed)
+                {
                     all_passed = false;
                 }
             }
