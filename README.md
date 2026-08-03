@@ -29,7 +29,7 @@
 | [Day 6](doc/day06/README.md) | 矩阵转置、shared memory、tile、bank conflict | 三版 transpose | 已归档 |
 | [Day 7](doc/day07/README.md) | 并行归约、同步、多阶段归约、warp shuffle | Sum/Max reduction | 已归档 |
 | [Day 8](doc/day08/README.md) | Nsight Compute 指标、源码关联和证据链 | NCU 分析记录 | 已归档 |
-| [Day 9](doc/day09/README.md) | Stream、Event、pinned memory 与流水线 | Stream pipeline | 独立阶段，本次未修改 |
+| [Day 9](doc/day09/README.md) | Stream、Event、pinned memory、流水线与 Nsight Systems | Stream pipeline | 已归档 |
 
 详细归档要求见 [归档规范](doc/ARCHIVE_CONVENTION.md)，代码命名和注释规范见 [代码规范](doc/CODE_STYLE.md)。
 

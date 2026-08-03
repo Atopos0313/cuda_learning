@@ -1,5 +1,6 @@
 #include "reduction.h"
 
+#include "common/benchmark_stats.h"
 #include "common/cuda_check.h"
 #include "common/cuda_timer.h"
 #include "common/device_buffer.h"
@@ -35,20 +36,6 @@ const char* operation_name(ReductionOperation operation)
 const char* variant_name(ReductionVariant variant)
 {
     return variant == ReductionVariant::Shared ? "shared" : "warp";
-}
-
-float median(std::vector<float> values)
-{
-    std::sort(values.begin(), values.end());
-
-    const std::size_t middle = values.size() / 2;
-
-    if (values.size() % 2 == 0)
-    {
-        return (values[middle - 1] + values[middle]) * 0.5F;
-    }
-
-    return values[middle];
 }
 
 int reduction_rounds(int n, int threads_per_block)
@@ -278,7 +265,7 @@ BenchmarkResult run_benchmark(ReductionOperation operation,
         samples.push_back(timer.elapsed_ms());
     }
 
-    const float pipeline_ms = median(samples);
+    const float pipeline_ms = benchmark_median(samples);
 
     const double million_elements_per_second =
         static_cast<double>(n) / (static_cast<double>(pipeline_ms) * 1.0e3);

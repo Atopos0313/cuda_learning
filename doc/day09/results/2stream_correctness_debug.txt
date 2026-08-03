@@ -1,0 +1,22 @@
+Date: 2026-08-03
+Configuration: Debug
+Executable: build/windows-ninja/Debug/stream_pipeline.exe
+N: 1000003
+threads_per_block: 256
+chunk_size: 262144
+streams: 2
+random_seed: 20260801
+absolute_tolerance: 1e-6
+relative_tolerance: 1e-5
+
+mode=serial_pageable, size=1000003, correct=PASS, max_abs_error=0, max_rel_error=0
+mode=serial_pinned, size=1000003, correct=PASS, max_abs_error=0, max_rel_error=0
+mode=async_pinned, streams=1, size=1000003, correct=PASS, max_abs_error=0, max_rel_error=0
+chunk_id=0, offset=0, current_count=262144, stream_id=0, current_bytes=1048576, chunk_grid=1024
+chunk_id=1, offset=262144, current_count=262144, stream_id=1, current_bytes=1048576, chunk_grid=1024
+chunk_id=2, offset=524288, current_count=262144, stream_id=0, current_bytes=1048576, chunk_grid=1024
+chunk_id=3, offset=786432, current_count=213571, stream_id=1, current_bytes=854284, chunk_grid=835
+mode=2stream_copy, streams=2, size=1000003, correct=PASS, max_abs_error=0, max_rel_error=0
+
+Mode-name note:
+mode=2stream_copy is the learner-selected name retained in source. The path executes H2D -> simpleKernel -> D2H for each chunk and compares the complete result with the CPU reference.

@@ -1,5 +1,6 @@
 #include "transpose.h"
 
+#include "common/benchmark_stats.h"
 #include "common/compare.h"
 #include "common/cuda_check.h"
 #include "common/cuda_timer.h"
@@ -53,20 +54,6 @@ void launch_transpose(TransposeVariant variant,
     {
         transpose_padded_device(d_input, d_output, height, width);
     }
-}
-
-float median(std::vector<float> values)
-{
-    std::sort(values.begin(), values.end());
-
-    const std::size_t middle = values.size() / 2;
-
-    if (values.size() % 2 == 0)
-    {
-        return (values[middle - 1] + values[middle]) * 0.5F;
-    }
-
-    return values[middle];
 }
 
 struct BenchmarkResult
@@ -142,7 +129,7 @@ BenchmarkResult run_benchmark(TransposeVariant variant,
         samples.push_back(timer.elapsed_ms());
     }
 
-    const float kernel_ms = median(samples);
+    const float kernel_ms = benchmark_median(samples);
 
     // One global read and one global write per element.
     const double transferred_bytes = 2.0 * static_cast<double>(bytes);

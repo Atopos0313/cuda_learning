@@ -1,5 +1,6 @@
 #include "vector_add.h"
 
+#include "common/benchmark_stats.h"
 #include "common/compare.h"
 #include "common/cuda_check.h"
 #include "common/cuda_timer.h"
@@ -18,19 +19,6 @@
 
 namespace
 {
-float median(std::vector<float> values)
-{
-    std::sort(values.begin(), values.end());
-
-    const std::size_t middle = values.size() / 2;
-    if (values.size() % 2 == 0)
-    {
-        return (values[middle - 1] + values[middle]) * 0.5F;
-    }
-
-    return values[middle];
-}
-
 struct BenchmarkResult
 {
     float kernel_ms = 0.0F;
@@ -109,8 +97,8 @@ BenchmarkResult run_benchmark(int n,
         e2e_samples.push_back(milliseconds);
     }
 
-    const float kernel_median = median(kernel_samples);
-    const float e2e_median = median(e2e_samples);
+    const float kernel_median = benchmark_median(kernel_samples);
+    const float e2e_median = benchmark_median(e2e_samples);
 
     // Vector add reads A and B and writes C: 3 * n * sizeof(float).
     const double transferred_bytes = 3.0 * static_cast<double>(bytes);

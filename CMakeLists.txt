@@ -65,6 +65,7 @@ add_library(cuda_ops STATIC
     kernels/memory_access.cu
     kernels/transpose.cu
     kernels/reduction.cu
+    kernels/stream_pipeline.cu
 )
 
 target_include_directories(cuda_ops
@@ -201,6 +202,20 @@ target_link_libraries(stream_pipeline
     PRIVATE
         cuda_ops
         cuda_engineering_options
+)
+
+add_executable(bench_stream_pipeline
+    benchmarks/bench_stream_pipeline.cu
+)
+
+target_link_libraries(bench_stream_pipeline
+    PRIVATE
+        cuda_ops
+        cuda_engineering_options
+)
+
+set_target_properties(bench_stream_pipeline PROPERTIES
+    FOLDER "Benchmarks"
 )
 
 # ------------------------------------------------------------

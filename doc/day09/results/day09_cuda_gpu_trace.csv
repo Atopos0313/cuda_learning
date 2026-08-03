@@ -1,0 +1,52 @@
+Start (ns),Duration (ns),CorrId,GrdX,GrdY,GrdZ,BlkX,BlkY,BlkZ,Reg/Trd,StcSMem (MB),DymSMem (MB),Bytes (MB),Throughput (MB/s),SrcMemKd,DstMemKd,Device,Ctx,GreenCtx,Strm,Name
+28717008,357372,233,,,,,,,,,,4.194,11735.663,Pinned,Device,NVIDIA GeForce RTX 2080 Ti (0),1,,13,[CUDA memcpy Host-to-Device]
+29075500,349787,238,,,,,,,,,,4.194,11987.321,Pinned,Device,NVIDIA GeForce RTX 2080 Ti (0),1,,14,[CUDA memcpy Host-to-Device]
+29426407,356636,243,,,,,,,,,,4.194,11756.634,Pinned,Device,NVIDIA GeForce RTX 2080 Ti (0),1,,15,[CUDA memcpy Host-to-Device]
+29784163,362844,248,,,,,,,,,,4.194,11559.502,Pinned,Device,NVIDIA GeForce RTX 2080 Ti (0),1,,16,[CUDA memcpy Host-to-Device]
+30408092,17055,235,4096,1,1,256,1,1,16,0.000,0.000,,,,,NVIDIA GeForce RTX 2080 Ti (0),1,,13,"simpleKernel(const float *, float *, int)"
+30422332,17695,250,4096,1,1,256,1,1,16,0.000,0.000,,,,,NVIDIA GeForce RTX 2080 Ti (0),1,,16,"simpleKernel(const float *, float *, int)"
+30438747,17824,245,4096,1,1,256,1,1,16,0.000,0.000,,,,,NVIDIA GeForce RTX 2080 Ti (0),1,,15,"simpleKernel(const float *, float *, int)"
+30455131,17632,240,4096,1,1,256,1,1,16,0.000,0.000,,,,,NVIDIA GeForce RTX 2080 Ti (0),1,,14,"simpleKernel(const float *, float *, int)"
+30622105,377916,237,,,,,,,,,,4.194,11098.128,Device,Pinned,NVIDIA GeForce RTX 2080 Ti (0),1,,13,[CUDA memcpy Device-to-Host]
+31001269,349819,242,,,,,,,,,,4.194,11987.321,Device,Pinned,NVIDIA GeForce RTX 2080 Ti (0),1,,14,[CUDA memcpy Device-to-Host]
+31352336,349948,247,,,,,,,,,,4.194,11983.127,Device,Pinned,NVIDIA GeForce RTX 2080 Ti (0),1,,15,[CUDA memcpy Device-to-Host]
+31703532,353884,252,,,,,,,,,,4.194,11848.909,Device,Pinned,NVIDIA GeForce RTX 2080 Ti (0),1,,16,[CUDA memcpy Device-to-Host]
+32146247,356540,253,,,,,,,,,,4.194,11760.828,Pinned,Device,NVIDIA GeForce RTX 2080 Ti (0),1,,13,[CUDA memcpy Host-to-Device]
+32504035,362235,258,,,,,,,,,,4.194,11576.279,Pinned,Device,NVIDIA GeForce RTX 2080 Ti (0),1,,14,[CUDA memcpy Host-to-Device]
+32867390,387740,263,,,,,,,,,,4.194,10817.110,Pinned,Device,NVIDIA GeForce RTX 2080 Ti (0),1,,15,[CUDA memcpy Host-to-Device]
+33256282,349211,268,,,,,,,,,,4.194,12008.292,Pinned,Device,NVIDIA GeForce RTX 2080 Ti (0),1,,16,[CUDA memcpy Host-to-Device]
+33874162,17760,255,4096,1,1,256,1,1,16,0.000,0.000,,,,,NVIDIA GeForce RTX 2080 Ti (0),1,,13,"simpleKernel(const float *, float *, int)"
+33889394,17824,270,4096,1,1,256,1,1,16,0.000,0.000,,,,,NVIDIA GeForce RTX 2080 Ti (0),1,,16,"simpleKernel(const float *, float *, int)"
+33905938,17824,265,4096,1,1,256,1,1,16,0.000,0.000,,,,,NVIDIA GeForce RTX 2080 Ti (0),1,,15,"simpleKernel(const float *, float *, int)"
+33922098,17887,260,4096,1,1,256,1,1,16,0.000,0.000,,,,,NVIDIA GeForce RTX 2080 Ti (0),1,,14,"simpleKernel(const float *, float *, int)"
+34031888,336668,257,,,,,,,,,,4.194,12457.083,Device,Pinned,NVIDIA GeForce RTX 2080 Ti (0),1,,13,[CUDA memcpy Device-to-Host]
+34369804,387228,262,,,,,,,,,,4.194,10829.693,Device,Pinned,NVIDIA GeForce RTX 2080 Ti (0),1,,14,[CUDA memcpy Device-to-Host]
+34758312,339163,267,,,,,,,,,,4.194,12364.808,Device,Pinned,NVIDIA GeForce RTX 2080 Ti (0),1,,15,[CUDA memcpy Device-to-Host]
+35098723,367804,272,,,,,,,,,,4.194,11400.118,Device,Pinned,NVIDIA GeForce RTX 2080 Ti (0),1,,16,[CUDA memcpy Device-to-Host]
+35575710,385915,273,,,,,,,,,,4.194,10867.442,Pinned,Device,NVIDIA GeForce RTX 2080 Ti (0),1,,13,[CUDA memcpy Host-to-Device]
+35962745,349148,278,,,,,,,,,,4.194,12012.487,Pinned,Device,NVIDIA GeForce RTX 2080 Ti (0),1,,14,[CUDA memcpy Host-to-Device]
+36313013,367483,283,,,,,,,,,,4.194,11412.701,Pinned,Device,NVIDIA GeForce RTX 2080 Ti (0),1,,15,[CUDA memcpy Host-to-Device]
+36681616,349340,288,,,,,,,,,,4.194,12004.098,Pinned,Device,NVIDIA GeForce RTX 2080 Ti (0),1,,16,[CUDA memcpy Host-to-Device]
+37157675,14336,275,4096,1,1,256,1,1,16,0.000,0.000,,,,,NVIDIA GeForce RTX 2080 Ti (0),1,,13,"simpleKernel(const float *, float *, int)"
+37170667,17471,290,4096,1,1,256,1,1,16,0.000,0.000,,,,,NVIDIA GeForce RTX 2080 Ti (0),1,,16,"simpleKernel(const float *, float *, int)"
+37186826,17760,285,4096,1,1,256,1,1,16,0.000,0.000,,,,,NVIDIA GeForce RTX 2080 Ti (0),1,,15,"simpleKernel(const float *, float *, int)"
+37203082,17824,280,4096,1,1,256,1,1,16,0.000,0.000,,,,,NVIDIA GeForce RTX 2080 Ti (0),1,,14,"simpleKernel(const float *, float *, int)"
+37308297,319932,277,,,,,,,,,,4.194,13107.200,Device,Pinned,NVIDIA GeForce RTX 2080 Ti (0),1,,13,[CUDA memcpy Device-to-Host]
+37629477,320220,282,,,,,,,,,,4.194,13094.617,Device,Pinned,NVIDIA GeForce RTX 2080 Ti (0),1,,14,[CUDA memcpy Device-to-Host]
+37950945,334876,287,,,,,,,,,,4.194,12524.192,Device,Pinned,NVIDIA GeForce RTX 2080 Ti (0),1,,15,[CUDA memcpy Device-to-Host]
+38287069,329212,292,,,,,,,,,,4.194,12738.101,Device,Pinned,NVIDIA GeForce RTX 2080 Ti (0),1,,16,[CUDA memcpy Device-to-Host]
+38779703,363516,293,,,,,,,,,,4.194,11534.336,Pinned,Device,NVIDIA GeForce RTX 2080 Ti (0),1,,13,[CUDA memcpy Host-to-Device]
+39144467,356956,298,,,,,,,,,,4.194,11748.246,Pinned,Device,NVIDIA GeForce RTX 2080 Ti (0),1,,14,[CUDA memcpy Host-to-Device]
+39502543,413275,303,,,,,,,,,,4.194,10146.021,Pinned,Device,NVIDIA GeForce RTX 2080 Ti (0),1,,15,[CUDA memcpy Host-to-Device]
+39916970,356923,308,,,,,,,,,,4.194,11748.246,Pinned,Device,NVIDIA GeForce RTX 2080 Ti (0),1,,16,[CUDA memcpy Host-to-Device]
+40893982,15968,295,4096,1,1,256,1,1,16,0.000,0.000,,,,,NVIDIA GeForce RTX 2080 Ti (0),1,,13,"simpleKernel(const float *, float *, int)"
+40906910,17664,310,4096,1,1,256,1,1,16,0.000,0.000,,,,,NVIDIA GeForce RTX 2080 Ti (0),1,,16,"simpleKernel(const float *, float *, int)"
+40923230,17695,305,4096,1,1,256,1,1,16,0.000,0.000,,,,,NVIDIA GeForce RTX 2080 Ti (0),1,,15,"simpleKernel(const float *, float *, int)"
+40939613,17440,300,4096,1,1,256,1,1,16,0.000,0.000,,,,,NVIDIA GeForce RTX 2080 Ti (0),1,,14,"simpleKernel(const float *, float *, int)"
+41041820,356156,297,,,,,,,,,,4.194,11773.411,Device,Pinned,NVIDIA GeForce RTX 2080 Ti (0),1,,13,[CUDA memcpy Device-to-Host]
+41399224,351612,302,,,,,,,,,,4.194,11928.601,Device,Pinned,NVIDIA GeForce RTX 2080 Ti (0),1,,14,[CUDA memcpy Device-to-Host]
+41752116,335260,307,,,,,,,,,,4.194,12507.415,Device,Pinned,NVIDIA GeForce RTX 2080 Ti (0),1,,15,[CUDA memcpy Device-to-Host]
+42088624,338908,312,,,,,,,,,,4.194,12373.197,Device,Pinned,NVIDIA GeForce RTX 2080 Ti (0),1,,16,[CUDA memcpy Device-to-Host]
+42507947,2080,313,,,,,,,,,,0.000,5.769,Pinned,Device,NVIDIA GeForce RTX 2080 Ti (0),1,,13,[CUDA memcpy Host-to-Device]
+42739272,3104,315,1,1,1,256,1,1,16,0.000,0.000,,,,,NVIDIA GeForce RTX 2080 Ti (0),1,,13,"simpleKernel(const float *, float *, int)"
+42825799,1504,317,,,,,,,,,,0.000,7.979,Device,Pinned,NVIDIA GeForce RTX 2080 Ti (0),1,,13,[CUDA memcpy Device-to-Host]

@@ -18,6 +18,8 @@ CMakeUserPresets.json
 # CUDA / profiler generated reports
 *.ncu-rep
 *.nsys-rep
+!reports/day09_timeline.nsys-rep
+reports/*.sqlite
 
 # Python cache
 __pycache__/

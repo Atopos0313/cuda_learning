@@ -1,3 +1,4 @@
+#include "common/benchmark_stats.h"
 #include "common/compare.h"
 #include "common/cuda_check.h"
 #include "common/cuda_timer.h"
@@ -55,20 +56,6 @@ void launch_axpy(AxpyVariant variant,
     {
         axpy_float4_device(d_x, d_y, n, alpha, threads_per_block);
     }
-}
-
-float median(std::vector<float> values)
-{
-    std::sort(values.begin(), values.end());
-
-    const std::size_t middle = values.size() / 2;
-
-    if (values.size() % 2 == 0)
-    {
-        return (values[middle - 1] + values[middle]) * 0.5F;
-    }
-
-    return values[middle];
 }
 
 struct BenchmarkResult
@@ -143,7 +130,7 @@ BenchmarkResult run_benchmark(AxpyVariant variant,
         samples.push_back(timer.elapsed_ms());
     }
 
-    const float kernel_ms = median(samples);
+    const float kernel_ms = benchmark_median(samples);
 
     // AXPY reads x and y, then writes y: 3 * n * sizeof(float).
     const double transferred_bytes = 3.0 * static_cast<double>(bytes);

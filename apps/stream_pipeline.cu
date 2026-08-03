@@ -1,23 +1,17 @@
 #include "common/cuda_check.h"
 #include "common/compare.h"
+#include "common/cuda_event.h"
+#include "common/cuda_stream.h"
 #include "common/device_buffer.h"
 #include "common/init_data.h"
+#include "common/pinned_buffer.h"
+#include "stream_pipeline.h"
 
 #include <cuda_runtime.h>
 #include <vector>
 #include <iostream>
 #include <algorithm>
-
-__global__ void simpleKernel(
-    const float* d_input,
-    float* d_output,
-    int n
-){
-    int index = blockDim.x * blockIdx.x + threadIdx.x;
-    if (index < n){
-        d_output[index] = d_input[index] * 2.0f + 1.0f;
-    }
-}
+#include <array>
 
 int main(){
     int N = 1000003;
@@ -32,11 +26,11 @@ int main(){
         reference[i] = h_input[i] * 2.0f + 1.0f;
     }
 
-    float* h_input_pinned = nullptr;
-    float* h_output_pinned = nullptr;
-
-    CUDA_CHECK(cudaMallocHost(reinterpret_cast<void**>(&h_input_pinned), bytes));
-    CUDA_CHECK(cudaMallocHost(reinterpret_cast<void**>(&h_output_pinned), bytes));
+    PinnedBuffer<float> pinned_input(static_cast<std::size_t>(N));
+    PinnedBuffer<float> pinned_output(static_cast<std::size_t>(N));
+    // 指针本身不能改变，但它指向的数据可以改变
+    float* const h_input_pinned = pinned_input.data();
+    float* const h_output_pinned = pinned_output.data();
 
     std::copy(h_input.begin(), h_input.end(), h_input_pinned);
 
@@ -118,20 +112,8 @@ int main(){
 
     // 同一个 Stream 永远严格按顺序执行
     //以下代码为单stream异步链
-    cudaStream_t stream = nullptr;
-    CUDA_CHECK(cudaStreamCreateWithFlags(
-        // CUDA，请把创建好的 Stream 句柄写到这里。
-        &stream,
-        // 表示这条 Stream 不会与默认 Stream 建立隐式同步关系
-        cudaStreamNonBlocking
-    ));
-
-    cudaEvent_t completion_event = nullptr;
-    CUDA_CHECK(cudaEventCreateWithFlags(
-        &completion_event,
-        // 此事件不用于计时
-        cudaEventDisableTiming
-    ));
+    CudaStream stream;
+    CudaCompletionEvent completion_event;
 
     // 清除旧结果
     std::fill(
@@ -148,7 +130,7 @@ int main(){
         0,
         bytes,
         // 把这个 memset 放进哪条任务队列？
-        stream
+        stream.get()
     ));
 
     CUDA_CHECK(cudaMemcpyAsync(
@@ -156,13 +138,13 @@ int main(){
         h_input_pinned,
         bytes,
         cudaMemcpyHostToDevice,
-        stream
+        stream.get()
     ));
     simpleKernel<<<
         grid,
         threads_per_block,
         0,
-        stream
+        stream.get()
     >>>(
         d_input.data(),
         d_output.data(),
@@ -176,17 +158,11 @@ int main(){
         d_output.data(),
         bytes,
         cudaMemcpyDeviceToHost,
-        stream
+        stream.get()
     ));
 
-    CUDA_CHECK(cudaEventRecord(
-        completion_event,
-        stream
-    ));
-
-    CUDA_CHECK(cudaEventSynchronize(
-        completion_event
-    ));
+    completion_event.record(stream.get());
+    completion_event.synchronize();
 
     const std::vector<float> async_result(
         h_output_pinned,
@@ -210,15 +186,116 @@ int main(){
         << ", max_rel_error=" << async_comparison.max_rel_error
         << '\n';
 
-    CUDA_CHECK(cudaEventDestroy(completion_event));
-    CUDA_CHECK(cudaStreamDestroy(stream));
+    // 2-stream
+    const int stream_count = 2;
+    const std::size_t chunk_size = 262'144;
+    // 创建两个流
+    std::array<CudaStream, stream_count> streams;
 
-    CUDA_CHECK(cudaFreeHost(h_input_pinned));
-    CUDA_CHECK(cudaFreeHost(h_output_pinned));
+    std::array<DeviceBuffer<float>, stream_count> chunk_inputs{
+        DeviceBuffer<float>(chunk_size),
+        DeviceBuffer<float>(chunk_size)
+    };
+    std::array<DeviceBuffer<float>, stream_count> chunk_outputs{
+        DeviceBuffer<float>(chunk_size),
+        DeviceBuffer<float>(chunk_size)
+    };
+
+    const std::size_t total_count = static_cast<std::size_t>(N);
+    const std::size_t chunk_count = (total_count + chunk_size - 1) / chunk_size;
+
+    // 防止读取上一次单 Stream 实验留下的正确结果
+    std::fill(
+        h_output_pinned,
+        h_output_pinned + N,
+        -1.0f
+    );
+
+    for (std::size_t chunk_id = 0; chunk_id < chunk_count; chunk_id++){
+        // 偏移量，用于计算元素的起始位置
+        const std::size_t offset = chunk_id * chunk_size;
+        // 最后一个chunk中的剩余元素
+        const std::size_t remaining = total_count - offset;
+        // 计算完与之前的相比较
+        const std::size_t current_count = std::min(chunk_size, remaining);
+        // 把每个chunk放在哪个stream中
+        const std::size_t stream_id = chunk_id % streams.size();
+        // 每一个chunk分配多少内存
+        const std::size_t current_bytes = current_count * sizeof(float);
+        // 每一个chunk分配多少block
+        const int chunk_grid = static_cast<int>(
+            (current_count + threads_per_block - 1) /
+            threads_per_block
+        );
+
+        CUDA_CHECK(cudaMemcpyAsync(
+            // 每个chunk的下标都是从0开始的
+            chunk_inputs[stream_id].data(),
+            // h_input_pinned + offset是用于计算对应位置，确定把原数组的哪些元素搬入对应的chunk中
+            h_input_pinned + offset,
+            current_bytes,
+            cudaMemcpyHostToDevice,
+            streams[stream_id].get()
+        ));
+
+        const int kernel_count = static_cast<int>(current_count);
+
+        simpleKernel<<<chunk_grid, threads_per_block, 0, streams[stream_id].get()>>>(chunk_inputs[stream_id].data(), chunk_outputs[stream_id].data(), kernel_count);
+        CUDA_CHECK(cudaGetLastError());
+
+        CUDA_CHECK(cudaMemcpyAsync(
+            h_output_pinned + offset,
+            chunk_outputs[stream_id].data(),
+            current_bytes,
+            cudaMemcpyDeviceToHost,
+            streams[stream_id].get()
+        ));
+
+        std::cout
+        << "chunk_id=" << chunk_id
+        << ", offset=" << offset
+        << ", current_count=" << current_count
+        << ", stream_id=" << stream_id
+        << ", current_bytes= " << current_bytes
+        << ", chunk_grid= " << chunk_grid
+        << '\n';
+    }
+
+    // stream的同步
+    for (const CudaStream& chunk_stream : streams)
+    {
+        chunk_stream.synchronize();
+    }
+
+    const std::vector<float> compare2stream_result(
+        h_output_pinned,
+        h_output_pinned + N
+    );
+
+    const CompareResult compare2stream_comparison =
+        compare_results(
+            compare2stream_result,
+            reference,
+            1.0e-6F,
+            1.0e-5F
+        );
+
+    std::cout
+        << "mode=2stream_copy"
+        << ", streams=2"
+        << ", size=" << N
+        << ", correct="
+        << (compare2stream_comparison.passed ? "PASS" : "FAIL")
+        << ", max_abs_error="
+        << compare2stream_comparison.max_abs_error
+        << ", max_rel_error="
+        << compare2stream_comparison.max_rel_error
+        << '\n';
 
     return (
         compare_sim.passed &&
         pinned_comparison.passed &&
-        async_comparison.passed
+        async_comparison.passed &&
+        compare2stream_comparison.passed
     ) ? 0 : 1;
 }
