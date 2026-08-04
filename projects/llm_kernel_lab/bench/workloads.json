@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "row_counts": [1, 16, 128, 1024, 4096],
+  "hidden_sizes": [128, 768, 1024, 4096, 8192],
+  "dtypes": ["float32", "float16"],
+  "scenarios": {
+    "decode": {
+      "row_counts": [1, 16]
+    },
+    "prefill": {
+      "row_counts": [128, 1024, 4096]
+    }
+  },
+  "rmsnorm": {
+    "epsilon": 0.00001,
+    "accumulation_dtype": "float32"
+  }
+}
